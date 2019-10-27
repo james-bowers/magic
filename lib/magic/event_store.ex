@@ -6,7 +6,7 @@ defmodule Magic.EventStore do
   @type aggregate :: String.t()
   @type events :: List.t()
 
-  @callback commit(aggregate, events) :: nil
+  @callback commit(aggregate, events) :: :ok
 
   @callback load(aggregate) :: events
 end

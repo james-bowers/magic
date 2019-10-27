@@ -6,16 +6,17 @@ defmodule Magic.Aggregate do
   """
   @type reason :: atom()
   @type current_state :: any
+  @type new_state :: any
   @type event :: any
   @type wish :: any
 
   @callback execute(current_state, wish) :: {:ok, event} | {:error, reason}
-  @callback next_state(current_state, event) :: {:ok, event} | {:error, reason}
+  @callback next_state(current_state, event) :: new_state
 
-  defmacro __using__(which) do
+  defmacro __using__(aggregate_registry: aggregate_registry, event_store: event_store) do
     quote do
-      @event_store Application.get_env(:magic, :event_store)
-      use GenEvent
+      @event_store unquote(event_store)
+      use GenServer
 
       def run(aggregate_id, wish) do
         via_tuple(aggregate_id) |> GenServer.call({aggregate_id, wish})
@@ -39,7 +40,8 @@ defmodule Magic.Aggregate do
       end
 
       defp via_tuple(aggregate_id) do
-        {:via, Registry, {:aggregate_registry, aggregate_id}}
+        # {:via, unquote(aggregate_registry), aggregate_id}
+        unquote(aggregate_registry).via_tuple(aggregate_id)
       end
 
       # callbacks

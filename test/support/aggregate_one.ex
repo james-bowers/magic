@@ -1,5 +1,7 @@
 defmodule Test.Support.AggregateOne do
-  use Magic.Aggregate
+  use Magic.Aggregate,
+    aggregate_registry: Test.Support.AggregateRegistry,
+    event_store: Test.Support.EventStore
 
   def execute(current_state, wish) do
     {:ok, %{this_is: "a new event"}}
