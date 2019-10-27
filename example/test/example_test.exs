@@ -1,7 +1,12 @@
 defmodule ExampleTest do
   use ExUnit.Case
 
-  test "increments a counter" do
-    Example.CounterAggregate.run("counter_one", %Example.Increment{increment_by: 1})
+  test "increments counters individually" do
+    assert 1 == Example.increment("counter")
+    assert 2 == Example.increment("counter")
+    assert 3 == Example.increment("counter")
+
+    assert 1 == Example.increment("counter_two")
+    assert 2 == Example.increment("counter_two")
   end
 end
