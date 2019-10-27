@@ -1,27 +1,36 @@
 defmodule Magic.Aggregate do
   @moduledoc """
-  `use`able template for creating an aggregate.
-
-  In setup options, a callback module will be given
-  to calculate the current state and whether the next 
-  `wish` is valid and the state caused because of it.
+  A process to track an aggregate, that
+  calls callback functions to update
+  state from previous events, and to create new events.
   """
+  @type reason :: atom()
+  @type current_state :: any
+  @type event :: any
+  @type wish :: any
+
+  @callback execute(current_state, wish) :: {:ok, event} | {:error, reason}
+  @callback next_state(current_state, event) :: {:ok, event} | {:error, reason}
+
   defmacro __using__(which) do
     quote do
+      @event_store Application.get_env(:magic, :event_store)
       use GenEvent
 
       def run(aggregate_id, wish) do
         via_tuple(aggregate_id) |> GenServer.call({aggregate_id, wish})
       end
 
+      def current_state(aggregate_id) do
+        via_tuple(aggregate_id) |> GenServer.call(:state)
+      end
+
       def start_link(aggregate_id) do
         name = via_tuple(aggregate_id)
 
-        Registry.start_link(keys: :unique, name: :my_registry)
-
-        case GenServer.start_link(__MODULE__, {aggregate_id}, name: name) do
+        case GenServer.start_link(__MODULE__, nil, name: name) do
           {:ok, _} ->
-            GenServer.cast(name, :read_to_get_current_state)
+            GenServer.cast(name, {:read_to_get_current_state, aggregate_id})
             :ok
 
           {:error, {:already_started, _}} ->
@@ -30,61 +39,39 @@ defmodule Magic.Aggregate do
       end
 
       defp via_tuple(aggregate_id) do
-        {:via, Registry, {:my_registry, aggregate_id}}
+        {:via, Registry, {:aggregate_registry, aggregate_id}}
       end
 
       # callbacks
       #
-      def init({aggregate_id}) do
-        {:ok, %{aggregate_id: aggregate_id}}
+      def init(init_value) do
+        {:ok, init_value}
       end
 
-      def handle_cast(:read_to_get_current_state, state) do
-        # events = if state.aggregate_id, do: EventStore.load(state.aggregate_id), else: []
-        events = []
+      def handle_cast({:read_to_get_current_state, aggregate_id}, state) do
+        events = @event_store.load(aggregate_id)
 
         {:noreply, state_from_events(events) || nil}
       end
 
       def handle_call({aggregate_id, wish}, _from, state) do
-        case __MODULE__.execute(state, wish) do
-          {:ok, new_event} ->
-
-            # calculate the new state
-            {:ok, new_state} = __MODULE__.next_state(state, new_event)
-
-            # TODO: store the new event (now the new state has been generated successfully)
-            # EventStore.commit(aggregate_id, new_event)
-            IO.inspect("save new events...")
-
-            {:reply, :ok, new_state}
-
-          error_result = {:error, _} ->
-            # something went wrong, so keep current state, and return error
-            {:reply, error_result, state}
+        with {:ok, new_event} <- __MODULE__.execute(state, wish),
+             new_state <- __MODULE__.next_state(state, new_event),
+             :ok <- @event_store.commit(aggregate_id, new_event) do
+          {:reply, :ok, new_state}
+        else
+          error -> error
         end
+      end
+
+      def handle_call(:state, _from, state) do
+        {:reply, state, state}
       end
 
       defp state_from_events(events) do
         events
-        |> Enum.reduce(nil, fn event, state -> __MODULE__.next_state(event, state) end)
+        |> Enum.reduce(nil, &__MODULE__.next_state(&2, &1))
       end
     end
   end
 end
-
-# defmodule James do
-#   use Magic.Aggregate
-
-#   def execute(current_state, wish) do
-#     IO.inspect(current_state, label: "execute")
-
-#     {:ok, %{this_is: "a new event"}}
-#   end
-
-#   def next_state(current_state, event) do
-#     IO.inspect(event, label: "calc next state from event")
-
-#     {:ok, event}
-#   end
-# end

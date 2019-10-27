@@ -15,6 +15,6 @@ defmodule Magic.EventSerializerTest do
   test "deserialises a serialised struct" do
     my_struct = %MyStruct{a_key: "b"}
     serialised = EventSerializer.serialize(my_struct)
-    my_struct == EventSerializer.deserialize(serialised)
+    assert my_struct == EventSerializer.deserialize(serialised)
   end
 end
