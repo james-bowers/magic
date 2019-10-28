@@ -15,9 +15,8 @@ defmodule Magic.AggregateRegistry do
         end
       end
 
-      def via_tuple(key) do
-        # raise "registry via_tuple ran"
-        {:via, Registry, {__MODULE__, key}}
+      def via_tuple(aggregate_id) do
+        {:via, Registry, {__MODULE__, aggregate_id}}
       end
 
       def child_spec(_) do

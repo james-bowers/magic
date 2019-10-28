@@ -34,7 +34,7 @@ defmodule Magic do
   end
 
   defp notify_listeners(magic) do
-    IO.inspect(magic, label: "notify listeners of")
+    # IO.inspect(magic, label: "notify listeners of")
     # TODO: notify listeners of the event that has occured.
     # Vary on `strong_consistency?` to either wait for
     # all listeners to acknowledge the event as success,

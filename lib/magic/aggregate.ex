@@ -16,7 +16,7 @@ defmodule Magic.Aggregate do
   defmacro __using__(aggregate_registry: aggregate_registry, event_store: event_store) do
     quote do
       @event_store unquote(event_store)
-      use GenServer
+      use GenServer, restart: :temporary
 
       def dispatch(aggregate_id, wish) do
         via_tuple(aggregate_id) |> GenServer.call({aggregate_id, wish})
