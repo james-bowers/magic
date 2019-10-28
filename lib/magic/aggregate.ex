@@ -18,7 +18,7 @@ defmodule Magic.Aggregate do
       @event_store unquote(event_store)
       use GenServer
 
-      def run(aggregate_id, wish) do
+      def dispatch(aggregate_id, wish) do
         via_tuple(aggregate_id) |> GenServer.call({aggregate_id, wish})
       end
 
@@ -40,12 +40,10 @@ defmodule Magic.Aggregate do
       end
 
       defp via_tuple(aggregate_id) do
-        # {:via, unquote(aggregate_registry), aggregate_id}
         unquote(aggregate_registry).via_tuple(aggregate_id)
       end
 
       # callbacks
-      #
       def init(init_value) do
         {:ok, init_value}
       end
@@ -59,8 +57,8 @@ defmodule Magic.Aggregate do
       def handle_call({aggregate_id, wish}, _from, state) do
         with {:ok, new_event} <- __MODULE__.execute(state, wish),
              new_state <- __MODULE__.next_state(state, new_event),
-             :ok <- @event_store.commit(aggregate_id, new_event) do
-          {:reply, :ok, new_state}
+             ok <- @event_store.commit(aggregate_id, new_event) do
+          {:reply, {:ok, new_event}, new_state}
         else
           error -> error
         end

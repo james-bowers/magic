@@ -18,7 +18,8 @@ defmodule Magic.AggregateTest do
     EventStoreMock
     |> expect(:commit, fn @aggregate, %{this_is: "a new event"} -> :ok end)
 
-    assert :ok == Test.Support.AggregateOne.run(@aggregate, %{my: "wish"})
+    assert {:ok, %{this_is: "a new event"}} ==
+             Test.Support.AggregateOne.dispatch(@aggregate, %{my: "wish"})
 
     assert %{this_is: "a new event", previous_event: "hello"} ==
              Test.Support.AggregateOne.current_state(@aggregate)

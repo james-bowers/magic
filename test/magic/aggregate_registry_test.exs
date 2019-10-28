@@ -9,6 +9,8 @@ defmodule Magic.AggregateRegistryTest do
   end
 
   test "can start one aggregate registry" do
+    Test.Support.AggregateRegistry.start_link()
+
     assert {:error, {:already_started, already_started_pid}} =
              Test.Support.AggregateRegistry.start_link()
   end
